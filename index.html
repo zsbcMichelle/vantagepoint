@@ -382,10 +382,18 @@ section{position:relative}
 .f-col ul li{margin-bottom:12px}
 .f-col ul li a{color:var(--muted); font-size:.92rem; transition:all .3s ease; display:inline-block}
 .f-col ul li a:hover{color:var(--gold-300); transform:translateX(4px)}
-.f-newsletter input{width:100%; padding:14px; background:rgba(5,16,46,.7); border:1px solid var(--line); border-radius:8px; color:var(--ivory); font-family:var(--font-sans); margin-bottom:12px; font-size:.9rem}
-.f-newsletter input:focus{outline:none; border-color:var(--gold-500)}
-.f-newsletter button{width:100%; padding:12px; background:var(--gold-grad); color:var(--navy-900); border-radius:8px; font-weight:600; font-size:12px; letter-spacing:.2em; text-transform:uppercase; transition:all .3s ease}
+.f-newsletter input[type="email"]{width:100%; padding:14px; background:rgba(5,16,46,.7); border:1px solid var(--line); border-radius:8px; color:var(--ivory); font-family:var(--font-sans); margin-bottom:12px; font-size:.9rem}
+.f-newsletter input[type="email"]:focus{outline:none; border-color:var(--gold-500)}
+.f-newsletter button{width:100%; padding:12px; background:var(--gold-grad); color:var(--navy-900); border-radius:8px; font-weight:600; font-size:12px; letter-spacing:.2em; text-transform:uppercase; transition:all .3s ease; display:flex; align-items:center; justify-content:center; position:relative}
 .f-newsletter button:hover{transform:translateY(-2px); box-shadow:var(--shadow-gold)}
+.f-newsletter button:disabled{opacity:.65; cursor:not-allowed; transform:none}
+.f-newsletter button .btn-spinner{width:14px; height:14px; border:2px solid rgba(5,16,46,.3); border-top-color:var(--navy-900); border-radius:50%; animation:spin .8s linear infinite; display:none}
+.f-newsletter button.loading .btn-label{display:none}
+.f-newsletter button.loading .btn-spinner{display:inline-block}
+.nl-msg, .nl-err{display:none; margin-top:12px; padding:10px 12px; border-radius:8px; font-size:.82rem; text-align:center; animation:fade-in .4s ease}
+.nl-msg{background:rgba(212,175,55,.1); border:1px solid var(--gold-500); color:var(--gold-300)}
+.nl-err{background:rgba(255,80,80,.1); border:1px solid rgba(255,120,120,.5); color:#ffb0b0}
+.nl-msg.show, .nl-err.show{display:block}
 
 .footer-bottom{max-width:1280px; margin:60px auto 0; padding-top:24px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:18px}
 .footer-bottom p{color:var(--muted); font-size:.82rem; letter-spacing:.05em}
@@ -1042,8 +1050,20 @@ html,body{min-width:1400px}
     <div class="f-col f-newsletter">
       <h5>Newsletter</h5>
       <p style="color:var(--muted); font-size:.88rem; line-height:1.6; margin-bottom:18px">Receive our quarterly briefing on markets, policy and operational excellence.</p>
-      <input type="email" placeholder="Your email address" />
-      <button type="button">Subscribe</button>
+      <form id="newsletterForm" action="https://formsubmit.co/sweetpaper1102@gmail.com" method="POST">
+        <input type="hidden" name="_subject" value="New newsletter subscriber — VantagePoint" />
+        <input type="hidden" name="_template" value="table" />
+        <input type="hidden" name="_captcha" value="false" />
+        <input type="hidden" name="_autoresponse" value="Thank you for subscribing to VantagePoint's quarterly briefing. Your first issue will arrive within the next quarter." />
+        <input type="text" name="_honey" style="display:none" tabindex="-1" autocomplete="off" />
+        <input type="email" name="Newsletter Email" placeholder="Your email address" required />
+        <button type="submit" id="newsletterBtn">
+          <span class="btn-label">Subscribe</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
+        <div class="nl-msg" id="newsletterMsg">Thank you &mdash; you&rsquo;re subscribed.</div>
+        <div class="nl-err" id="newsletterErr">Sorry, something went wrong. Please try again.</div>
+      </form>
     </div>
   </div>
 
@@ -1200,6 +1220,37 @@ form.addEventListener('submit', async e => {
     setTimeout(() => { okMsg.classList.remove('show'); errMsg.classList.remove('show'); }, 8000);
   }
 });
+
+// ========== Newsletter subscribe (FormSubmit AJAX) ==========
+const nlForm = document.getElementById('newsletterForm');
+if (nlForm){
+  const nlBtn = document.getElementById('newsletterBtn');
+  const nlOk = document.getElementById('newsletterMsg');
+  const nlErr = document.getElementById('newsletterErr');
+  nlForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (nlForm.querySelector('[name="_honey"]').value) return;
+    nlOk.classList.remove('show'); nlErr.classList.remove('show');
+    nlBtn.classList.add('loading'); nlBtn.disabled = true;
+    const data = new FormData(nlForm);
+    try {
+      const res = await fetch('https://formsubmit.co/ajax/sweetpaper1102@gmail.com', {
+        method:'POST', headers:{'Accept':'application/json'}, body: data
+      });
+      const json = await res.json().catch(()=>({}));
+      if (res.ok && (json.success === 'true' || json.success === true)) {
+        nlOk.classList.add('show');
+        nlForm.reset();
+      } else {
+        nlErr.classList.add('show');
+      }
+    } catch { nlErr.classList.add('show'); }
+    finally {
+      nlBtn.classList.remove('loading'); nlBtn.disabled = false;
+      setTimeout(() => { nlOk.classList.remove('show'); nlErr.classList.remove('show'); }, 6000);
+    }
+  });
+}
 
 // ========== WhatsApp send button — builds a prefilled message from the form ==========
 const WA_NUMBER = '16263758350';
